@@ -163,15 +163,21 @@
             },
             body: JSON.stringify({
               message,
-              history: messageHistory,
+              history: messageHistory.map((msg) => ({
+                role: msg.role,
+                parts: [{ text: msg.content }],
+              })),
             }),
           });
 
           const data = await response.json();
           addMessage(data.response);
 
-          // Update message history
-          messageHistory = data.history;
+          // Update message history with the new format
+          messageHistory = data.history.map((msg) => ({
+            role: msg.role,
+            content: msg.parts[0].text,
+          }));
         } catch (error) {
           console.error("Error:", error);
           addMessage("Sorry, there was an error processing your message.");
