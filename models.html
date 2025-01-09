@@ -9,52 +9,100 @@
         padding: 0;
         box-sizing: border-box;
       }
+
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           sans-serif;
-        padding: 20px;
-        max-width: 800px;
-        margin: 0 auto;
+        background: #f0f2f5;
+        min-height: 100vh;
       }
+
+      h1 {
+        padding: 16px;
+        background: #008069;
+        color: white;
+        font-size: 20px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        margin: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
       .model-list {
-        display: grid;
-        gap: 15px;
-        padding: 20px 0;
+        max-width: 100%;
+        margin: 0 auto;
+        background: white;
       }
+
       .model-card {
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e9edef;
         cursor: pointer;
-        transition: all 0.3s ease;
-        background: #f9f9f9;
+        transition: all 0.2s ease;
+        background: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
       }
+
       .model-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background: #f0f2f5;
       }
-      .model-number {
-        font-size: 24px;
-        font-weight: bold;
-        color: #007bff;
-        margin-bottom: 10px;
+
+      .model-card:active {
+        background: #e9edef;
       }
-      .model-instruction {
-        color: #666;
+
+      .model-image {
+        width: 49px;
+        height: 49px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .model-content {
+        flex: 1;
+        min-width: 0; /* Helps with text truncation */
+      }
+
+      .model-name {
+        font-size: 17px;
+        font-weight: 500;
+        color: #111b21;
+        margin-bottom: 4px;
+      }
+
+      .model-bio {
+        color: #667781;
         font-size: 14px;
-        max-height: 100px;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      h1 {
-        margin-bottom: 20px;
-        color: #333;
-      }
+
       .loading {
         text-align: center;
         padding: 20px;
-        font-style: italic;
-        color: #666;
+        color: #667781;
+      }
+
+      /* Desktop adjustments */
+      @media (min-width: 768px) {
+        body {
+          padding: 20px;
+        }
+
+        .model-list {
+          max-width: 600px;
+          border-radius: 12px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+
+        h1 {
+          border-radius: 12px 12px 0 0;
+        }
       }
     </style>
   </head>
@@ -77,9 +125,12 @@
             const card = document.createElement("div");
             card.className = "model-card";
             card.innerHTML = `
-                        <div class="model-number">Model ${model.number}</div>
-                        <div class="model-instruction">${model.instruction}</div>
-                    `;
+              <img src="${model.image}" alt="${model.name}" class="model-image">
+              <div class="model-content">
+                <div class="model-name">${model.name}</div>
+                <div class="model-bio">${model.bio}</div>
+              </div>
+            `;
 
             card.addEventListener("click", async () => {
               try {
