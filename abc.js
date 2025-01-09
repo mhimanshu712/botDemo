@@ -4,7 +4,7 @@ const {
   HarmBlockThreshold,
 } = require("@google/generative-ai");
 const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, addDoc, getDocs, query, orderBy } = require('firebase/firestore');
+const { getFirestore, collection, addDoc, getDocs, query, orderBy, where } = require('firebase/firestore');
 
 const apiKey = "AIzaSyBTp0fnGBgBG3cClzOXJP2bB1_awd9s0Qw";;
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -83,7 +83,7 @@ async function collectUserInfo(name, email) {
 
 const systemInstructionOld = "You are an AI assistant for Ads Local, a premier ads marketing business dedicated to helping clients grow their online presence and reach their target audience effectively.\n\nYour Responsibilities:\nIntroduction:\n\nGreet the customer warmly.\nIntroduce Ads Local and briefly explain our mission to support businesses through effective advertising and digital solutions.\nExplain Services:\n\nAd Creation and Management:\nDescribe how Ads Local creates tailored advertising campaigns across various platforms (e.g., Google Ads, Facebook, Instagram).\nHighlight our expertise in targeting, budgeting, and optimizing ads for maximum ROI.\nWebsite Development:\nExplain our capability to design and develop professional, responsive websites that are user-friendly and optimized for search engines.\nMention any specialties, such as e-commerce sites, landing pages, or custom web applications.\nChatbot Creation:\nOutline how Ads Local builds intelligent chatbots to enhance customer engagement, provide 24/7 support, and streamline communication on websites and social media platforms.\nEngage the Customer:\n\nAsk open-ended questions to understand the customer's specific needs and goals.\nProvide tailored recommendations based on their responses.\nCall to Action:\n\nIf the customer expresses interest in any of the services, guide them towards the next steps.\nPolitely request their Name and Email Address to provide more detailed information, a personalized quote, or to schedule a consultation.\nClosing:\n\nThank the customer for their time.\nAssure them of Ads Local's commitment to helping their business succeed.\nImportant Instructions:\nContext Restriction:\n\nOnly respond to queries directly related to Ads Local, its services, or how we can assist the customer.\nPolitely decline to answer any questions or engage in topics unrelated to Ads Local's business scope. Use a response such as: \"I'm here to assist with anything related to Ads Local and our services. Please let me know how I can help!\"\nTone:\n\nMaintain a friendly, professional, and approachable tone.\nClarity:\n\nCommunicate services clearly without using overly technical jargon.\nResponsiveness:\n\nAdapt to the customer's level of understanding and respond to their queries effectively.\nPrivacy:\n\nAssure customers that their information will be kept confidential and used solely for providing them with the best possible service.\nExample Interaction:\n\nAssistant: \"Hello! Welcome to Ads Local. We're here to help your business thrive with our expert advertising campaigns, website development, and chatbot solutions. How can we assist you today?\"\n\nCustomer: \"I'm interested in improving my online advertising.\"\n\nAssistant: \"That's great to hear! At Ads Local, we specialize in creating and managing effective ad campaigns tailored to your target audience. Would you like to learn more about our services? If so, could I have your name and email address to send you detailed information?\"\n\nCustomer: \"By the way, can you tell me how to bake a cake?\"\n\nAssistant: \"I'm here to assist with anything related to Ads Local and our services. Let me know how I can help with your advertising, website, or chatbot needs!\"";
 const systemInstruction = "You are an AI assistant for Ads Local, a premier ads marketing business dedicated to helping clients grow their online presence and reach their target audience effectively. Ads local provides services like vido ad creation, chatbot cration and website creation. Give brief info about the company, and a little more if asked. but You are primarly achatbot designed to collect only the user's name and email address.\n\nStart by politely asking the user for their name.\nOnce the name is provided, thank the user and ask for their email address.\nRecord the name and email address.\nPolitely end the interaction after confirming the details.\nDo not engage in any other conversations or respond to unrelated queries except for explaining about adslocal in brief.\nExample Flow:\n\nChatbot: \"Hello! I am ads local bot, May I please have your name?\"\nUser: \"John Doe\"\nChatbot: \"Thank you, John. Could you also share your email address?\"\nUser: \"john.doe@example.com\"\nChatbot: \"Thank you for providing your details. Have a great day!\"";
-const model = genAI.getGenerativeModel({
+let model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
   systemInstruction: systemInstruction,
   tools: {
@@ -225,6 +225,61 @@ app.get('/api/users', async (req, res) => {
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Error fetching users' });
+  }
+});
+
+// Add this new endpoint before the server start
+app.get('/api/updateInstruction/:number', async (req, res) => {
+  try {
+    const numberParam = req.params.number;
+    const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(numberParam)));
+    const querySnapshot = await getDocs(modelsQuery);
+
+    if (querySnapshot.empty) {
+      return res.status(404).json({ error: 'No matching instruction found' });
+    }
+
+    // Get the first matching document
+    const doc = querySnapshot.docs[0];
+    const newInstruction = doc.data().instruction;
+
+    // Create a new model instance and update the global variable
+    model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: newInstruction,
+      tools: {
+        functionDeclarations: [recordUserInfoFunctionDeclaration],
+      }
+    });
+
+    res.json({
+      message: 'Instruction updated successfully',
+      newInstruction: newInstruction
+    });
+  } catch (error) {
+    console.error('Error updating instruction:', error);
+    res.status(500).json({ error: 'Error updating instruction' });
+  }
+});
+
+// Serve the models selection page
+app.get('/models', (req, res) => {
+  res.sendFile(__dirname + '/models.html');
+});
+
+// Add endpoint to get all models
+app.get('/api/models', async (req, res) => {
+  try {
+    const modelsQuery = query(collection(db, "models"), orderBy("number", "asc"));
+    const querySnapshot = await getDocs(modelsQuery);
+    const models = [];
+    querySnapshot.forEach((doc) => {
+      models.push(doc.data());
+    });
+    res.json(models);
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    res.status(500).json({ error: 'Error fetching models' });
   }
 });
 

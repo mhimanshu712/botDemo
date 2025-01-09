@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Select Chat Model</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .model-list {
+        display: grid;
+        gap: 15px;
+        padding: 20px 0;
+      }
+      .model-card {
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #f9f9f9;
+      }
+      .model-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .model-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 10px;
+      }
+      .model-instruction {
+        color: #666;
+        font-size: 14px;
+        max-height: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      h1 {
+        margin-bottom: 20px;
+        color: #333;
+      }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        font-style: italic;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Select a Chat Model</h1>
+    <div id="model-container" class="model-list">
+      <div class="loading">Loading models...</div>
+    </div>
+
+    <script>
+      async function fetchModels() {
+        try {
+          const response = await fetch("/api/models");
+          const models = await response.json();
+
+          const container = document.getElementById("model-container");
+          container.innerHTML = ""; // Clear loading message
+
+          models.forEach((model) => {
+            const card = document.createElement("div");
+            card.className = "model-card";
+            card.innerHTML = `
+                        <div class="model-number">Model ${model.number}</div>
+                        <div class="model-instruction">${model.instruction}</div>
+                    `;
+
+            card.addEventListener("click", async () => {
+              try {
+                // Update the model instruction
+                const updateResponse = await fetch(
+                  `/api/updateInstruction/${model.number}`
+                );
+                if (updateResponse.ok) {
+                  // Redirect to chat page
+                  window.location.href = "/";
+                } else {
+                  alert("Failed to update model. Please try again.");
+                }
+              } catch (error) {
+                console.error("Error:", error);
+                alert("An error occurred. Please try again.");
+              }
+            });
+
+            container.appendChild(card);
+          });
+        } catch (error) {
+          console.error("Error:", error);
+          document.getElementById("model-container").innerHTML =
+            '<div style="color: red;">Error loading models. Please refresh the page.</div>';
+        }
+      }
+
+      // Load models when page loads
+      fetchModels();
+    </script>
+  </body>
+</html>
