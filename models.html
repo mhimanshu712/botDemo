@@ -2,7 +2,14 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Select Chat Model</title>
+    <title>BizBot</title>
+    <!-- Add Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap"
+      rel="stylesheet"
+    />
     <style>
       * {
         margin: 0;
@@ -23,13 +30,16 @@
         padding: 16px;
         background: #8b5cf6;
         color: #eef2ff;
-        font-size: 20px;
+        font-size: 24px;
         position: sticky;
         top: 0;
         z-index: 100;
         margin: 0;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
         border-radius: 0;
+        font-family: "Orbitron", sans-serif;
+        letter-spacing: 1px;
+        text-align: left;
       }
 
       .model-list {
@@ -139,7 +149,7 @@
     </style>
   </head>
   <body>
-    <h1>Select a Chat Model</h1>
+    <h1>BizBot</h1>
     <div id="model-container" class="model-list">
       <div class="loading">Loading models...</div>
     </div>
