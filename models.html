@@ -19,14 +19,14 @@
 
       h1 {
         padding: 16px;
-        background: #008069;
-        color: white;
+        background: #8b5cf6;
+        color: #eef2ff;
         font-size: 20px;
         position: sticky;
         top: 0;
         z-index: 100;
         margin: 0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
       }
 
       .model-list {
@@ -47,11 +47,11 @@
       }
 
       .model-card:hover {
-        background: #f0f2f5;
+        background: #eef2ff;
       }
 
       .model-card:active {
-        background: #e9edef;
+        background: #e0e7ff;
       }
 
       .model-image {
@@ -69,22 +69,24 @@
       .model-name {
         font-size: 17px;
         font-weight: 500;
-        color: #111b21;
+        color: #1f2937;
         margin-bottom: 4px;
       }
 
       .model-bio {
-        color: #667781;
+        color: #4b5563;
         font-size: 14px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        opacity: 0.8;
       }
 
       .loading {
         text-align: center;
         padding: 20px;
-        color: #667781;
+        color: #4b5563;
+        opacity: 0.7;
       }
 
       /* Desktop adjustments */
@@ -140,7 +142,7 @@
                 );
                 if (updateResponse.ok) {
                   // Redirect to chat page
-                  window.location.href = "/";
+                  window.location.href = "/chat";
                 } else {
                   alert("Failed to update model. Please try again.");
                 }

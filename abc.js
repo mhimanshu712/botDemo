@@ -141,7 +141,12 @@ app.use(express.json());
 
 // Serve the HTML file
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(__dirname + '/models.html');
+});
+
+// Update chat route to use chat.html instead of index.html
+app.get('/chat', (req, res) => {
+  res.sendFile(__dirname + '/chat.html');
 });
 
 // Handle chat messages
