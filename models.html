@@ -181,8 +181,8 @@
                   `/api/updateInstruction/${model.number}`
                 );
                 if (updateResponse.ok) {
-                  // Redirect to chat page
-                  window.location.href = "/chat";
+                  // Redirect to chat page with bot number parameter
+                  window.location.href = `/chat?bot=${model.number}`;
                 } else {
                   alert("Failed to update model. Please try again.");
                 }

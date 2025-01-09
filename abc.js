@@ -288,6 +288,26 @@ app.get('/api/models', async (req, res) => {
   }
 });
 
+// Add endpoint to get a specific model
+app.get('/api/models/:number', async (req, res) => {
+  try {
+    const numberParam = parseInt(req.params.number);
+    const modelsQuery = query(collection(db, "models"), where("number", "==", numberParam));
+    const querySnapshot = await getDocs(modelsQuery);
+
+    if (querySnapshot.empty) {
+      return res.status(404).json({ error: 'Model not found' });
+    }
+
+    // Get the first matching document
+    const doc = querySnapshot.docs[0];
+    res.json(doc.data());
+  } catch (error) {
+    console.error('Error fetching model:', error);
+    res.status(500).json({ error: 'Error fetching model' });
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
