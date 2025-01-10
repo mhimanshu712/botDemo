@@ -141,12 +141,12 @@ app.use(express.json());
 
 // Serve the HTML file
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/models.html');
+  res.sendFile(__dirname + '/frontend/models.html');
 });
 
 // Update chat route to use chat.html instead of index.html
 app.get('/chat', (req, res) => {
-  res.sendFile(__dirname + '/chat.html');
+  res.sendFile(__dirname + '/frontend/chat.html');
 });
 
 // Handle chat messages
@@ -200,18 +200,7 @@ app.post('/chat', async (req, res) => {
 
 // Add new endpoint to get users
 app.get('/users', async (req, res) => {
-  try {
-    const usersQuery = query(collection(db, "users"), orderBy("timestamp", "desc"));
-    const querySnapshot = await getDocs(usersQuery);
-    const users = [];
-    querySnapshot.forEach((doc) => {
-      users.push({ id: doc.id, ...doc.data() });
-    });
-    res.sendFile(__dirname + '/users.html');
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).send('Error fetching users');
-  }
+  res.sendFile(__dirname + '/frontend/users.html');
 });
 
 // Add endpoint to get users data as JSON
@@ -269,7 +258,7 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
 
 // Serve the models selection page
 app.get('/models', (req, res) => {
-  res.sendFile(__dirname + '/models.html');
+  res.sendFile(__dirname + '/frontend/models.html');
 });
 
 // Add endpoint to get all models
