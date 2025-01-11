@@ -195,6 +195,10 @@
       const sendButton = document.getElementById("send-button");
       let messageHistory = [];
 
+      // Generate or retrieve user ID from localStorage
+      const userId = localStorage.getItem("userId") || `user-${Date.now()}`;
+      localStorage.setItem("userId", userId); // Store the user ID
+
       // Get bot number from URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const botNumber = urlParams.get("bot") || "1";
@@ -265,7 +269,7 @@
             },
             body: JSON.stringify({
               message,
-              botNumber: botNumber,
+              userId, // Include userId in the request
               history: messageHistory.map((msg) => ({
                 role: msg.role,
                 parts: [{ text: msg.content }],

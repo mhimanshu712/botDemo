@@ -176,16 +176,16 @@
 
             card.addEventListener("click", async () => {
               try {
-                // Update the model instruction
-                const updateResponse = await fetch(
-                  `/api/updateInstruction/${model.number}`
+                const userId =
+                  localStorage.getItem("userId") || `user-${Date.now()}`;
+                localStorage.setItem("userId", userId);
+                // Update the model instruction for the current user
+                fetch(
+                  `/api/updateInstruction/${model.number}?userId=${userId}`
                 );
-                if (updateResponse.ok) {
-                  // Redirect to chat page with bot number parameter
-                  window.location.href = `/chat?bot=${model.number}`;
-                } else {
-                  alert("Failed to update model. Please try again.");
-                }
+                // Send the update request without waiting
+                // Redirect to chat page with bot number parameter
+                window.location.href = `/chat?bot=${model.number}`;
               } catch (error) {
                 console.error("Error:", error);
                 alert("An error occurred. Please try again.");

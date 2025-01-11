@@ -118,30 +118,33 @@ app.post('/api/chat/:number', async (req, res) => {
     const userId = req.body.userId; // Assume userId is sent in the request
     const modelNumber = req.params.number; // New parameter for model number
 
-    // Fetch the model instruction based on the model number
-    const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(modelNumber)));
-    const querySnapshot = await getDocs(modelsQuery);
+    if (!userSessions[userId] || userSessions[userId].modelNumber !== modelNumber) {
+      // Fetch the model instruction based on the model number only if the user session does not exist or model number is different
+      const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(modelNumber)));
+      const querySnapshot = await getDocs(modelsQuery);
 
-    if (querySnapshot.empty) {
-      return res.status(404).json({ error: 'No matching instruction found' });
-    }
+      if (querySnapshot.empty) {
+        return res.status(404).json({ error: 'No matching instruction found' });
+      }
 
-    // Get the first matching document
-    const doc = querySnapshot.docs[0];
-    const newInstruction = doc.data().instruction;
+      // Get the first matching document
+      const doc = querySnapshot.docs[0];
+      const newInstruction = doc.data().instruction;
 
-    if (!userSessions[userId]) {
       // Create a new model instance for the user with the fetched instruction
-      userSessions[userId] = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: newInstruction, // Use the fetched instruction
-        tools: {
-          functionDeclarations: [recordUserInfoFunctionDeclaration],
-        }
-      });
+      userSessions[userId] = {
+        modelNumber: modelNumber, // Store the current model number
+        instance: genAI.getGenerativeModel({
+          model: "gemini-1.5-flash",
+          systemInstruction: newInstruction, // Use the fetched instruction
+          tools: {
+            functionDeclarations: [recordUserInfoFunctionDeclaration],
+          }
+        })
+      };
     }
 
-    const chatSession = userSessions[userId].startChat({
+    const chatSession = userSessions[userId].instance.startChat({
       generationConfig,
       history: req.body.history
     });
@@ -210,6 +213,13 @@ app.get('/api/users', async (req, res) => {
 app.get('/api/updateInstruction/:number', async (req, res) => {
   try {
     const numberParam = req.params.number;
+    const userId = req.query.userId; // Assume userId is sent as a query parameter
+
+    // Check if the user session exists
+    if (userSessions[userId] && userSessions[userId].modelNumber === numberParam) {
+      return res.json({ message: 'Model is already up to date' });
+    }
+
     const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(numberParam)));
     const querySnapshot = await getDocs(modelsQuery);
 
@@ -221,14 +231,20 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
     const doc = querySnapshot.docs[0];
     const newInstruction = doc.data().instruction;
 
-    // Create a new model instance and update the global variable
-    model = genAI.getGenerativeModel({
+    // Create a new model instance
+    const newModelInstance = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction: newInstruction,
       tools: {
         functionDeclarations: [recordUserInfoFunctionDeclaration],
       }
     });
+
+    // Update the user session if it exists
+    if (userSessions[userId]) {
+      userSessions[userId].instance = newModelInstance; // Update the model instance for the user
+      userSessions[userId].modelNumber = numberParam; // Update the model number
+    }
 
     res.json({
       message: 'Instruction updated successfully',
