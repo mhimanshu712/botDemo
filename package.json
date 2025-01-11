@@ -4,7 +4,7 @@
   "description": "Chatbot for Ads Local using Gemini AI",
   "main": "abc.js",
   "scripts": {
-    "start": "node abc.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

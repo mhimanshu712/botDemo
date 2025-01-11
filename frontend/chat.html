@@ -198,6 +198,8 @@
       // Get bot number from URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const botNumber = urlParams.get("bot") || "1";
+      console.log("** bot name");
+      console.log(botNumber);
 
       // Set bot info in the header
       async function setBotInfo() {
@@ -256,7 +258,7 @@
         messageInput.value = "";
 
         try {
-          const response = await fetch("/chat", {
+          const response = await fetch(`/api/chat/${botNumber}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

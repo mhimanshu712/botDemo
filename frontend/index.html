@@ -1,18 +1,208 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ads Local Chat</title>
+    <title>BizBot</title>
+    <!-- Add Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap"
       rel="stylesheet"
     />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #f0f2f5;
+        min-height: 100vh;
+        padding: 0;
+        margin: 0;
+      }
+
+      h1 {
+        padding: 16px;
+        background: #8b5cf6;
+        color: #eef2ff;
+        font-size: 24px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        margin: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        border-radius: 0;
+        font-family: "Orbitron", sans-serif;
+        letter-spacing: 1px;
+        text-align: left;
+      }
+
+      .model-list {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      .model-card {
+        padding: 16px;
+        border-bottom: 1px solid #e9edef;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .model-card:hover {
+        background: #eef2ff;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .model-card:active {
+        background: #e0e7ff;
+        transform: translateY(0);
+      }
+
+      .model-image {
+        width: 49px;
+        height: 49px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .model-content {
+        flex: 1;
+        min-width: 0; /* Helps with text truncation */
+      }
+
+      .model-name {
+        font-size: 17px;
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 4px;
+        user-select: none;
+        -webkit-user-select: none; /* Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+/Edge */
+      }
+
+      .model-bio {
+        color: #4b5563;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        opacity: 0.8;
+        user-select: none;
+        -webkit-user-select: none; /* Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+/Edge */
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #4b5563;
+        opacity: 0.7;
+      }
+
+      /* Desktop adjustments */
+      @media (min-width: 768px) {
+        .model-list {
+          margin: 0;
+          border-radius: 0;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+            0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+          border-radius: 0;
+          font-size: 22px;
+        }
+
+        .model-card {
+          padding: 20px;
+        }
+      }
+
+      /* Mobile adjustments */
+      @media (max-width: 767px) {
+        body {
+          padding: 0;
+        }
+
+        .model-list {
+          margin: 0;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <h1>BizBot</h1>
+    <div id="model-container" class="model-list">
+      <div class="loading">Loading models...</div>
+    </div>
+
+    <script>
+      async function fetchModels() {
+        try {
+          const response = await fetch("/api/models");
+          const models = await response.json();
+
+          const container = document.getElementById("model-container");
+          container.innerHTML = ""; // Clear loading message
+
+          models.forEach((model) => {
+            const card = document.createElement("div");
+            card.className = "model-card";
+            card.innerHTML = `
+              <img src="${model.image}" alt="${model.name}" class="model-image">
+              <div class="model-content">
+                <div class="model-name">${model.name}</div>
+                <div class="model-bio">${model.bio}</div>
+              </div>
+            `;
+
+            card.addEventListener("click", async () => {
+              try {
+                // Update the model instruction
+                const updateResponse = await fetch(
+                  `/api/updateInstruction/${model.number}`
+                );
+                if (updateResponse.ok) {
+                  // Redirect to chat page with bot number parameter
+                  window.location.href = `/chat?bot=${model.number}`;
+                } else {
+                  alert("Failed to update model. Please try again.");
+                }
+              } catch (error) {
+                console.error("Error:", error);
+                alert("An error occurred. Please try again.");
+              }
+            });
+
+            container.appendChild(card);
+          });
+        } catch (error) {
+          console.error("Error:", error);
+          document.getElementById("model-container").innerHTML =
+            '<div style="color: red;">Error loading models. Please refresh the page.</div>';
+        }
+      }
+
+      // Load models when page loads
+      fetchModels();
+    </script>
   </body>
 </html>
