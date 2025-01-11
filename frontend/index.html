@@ -186,6 +186,7 @@
           container.innerHTML = ""; // Clear loading message
 
           models.forEach((model) => {
+            if (model.number === 52) return; // Skip model with number 2
             const card = document.createElement("div");
             card.className = "model-card";
             card.innerHTML = `
@@ -207,7 +208,7 @@
                 );
                 // Send the update request without waiting
                 // Redirect to chat page with bot number parameter
-                window.location.href = `/chat?bot=${model.number}`;
+                window.location.href = `/chat?model=${model.number}`;
               } catch (error) {
                 console.error("Error:", error);
                 alert("An error occurred. Please try again.");
