@@ -54,13 +54,21 @@
         font-size: 16px;
       }
       #send-button {
-        padding: 12px 20px;
+        width: 50px;
+        height: 50px;
         border: none;
-        border-radius: 4px;
+        border-radius: 50%;
         background: #383344;
         color: white;
-        font-size: 16px;
         cursor: pointer;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+      }
+      #send-button:hover {
+        background: #1f2937;
       }
       .message {
         margin: 8px 0;
