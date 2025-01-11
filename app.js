@@ -104,8 +104,8 @@ app.get('/', async (req, res) => {
 });
 
 // Add new endpoint to get users
-app.get('/users', async (req, res) => {
-  res.sendFile(__dirname + '/frontend/users.html');
+app.get('/collectedData', async (req, res) => {
+  res.sendFile(__dirname + '/frontend/collectedData.html');
 });
 
 app.get('/chat', async (req, res) => {
@@ -130,10 +130,12 @@ app.post('/api/chat/:number', async (req, res) => {
       // Get the first matching document
       const doc = querySnapshot.docs[0];
       const newInstruction = doc.data().instruction;
+      const temperature = doc.data().temperature; // Fetch the model temperature
 
       // Create a new model instance for the user with the fetched instruction
       userSessions[userId] = {
         modelNumber: modelNumber, // Store the current model number
+        temperature: temperature, // Store the model temperature
         instance: genAI.getGenerativeModel({
           model: "gemini-1.5-flash",
           systemInstruction: newInstruction, // Use the fetched instruction
@@ -143,7 +145,7 @@ app.post('/api/chat/:number', async (req, res) => {
         })
       };
     }
-
+    generationConfig.temperature = userSessions[userId].temperature || 1;
     const chatSession = userSessions[userId].instance.startChat({
       generationConfig,
       history: req.body.history
@@ -230,6 +232,7 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
     // Get the first matching document
     const doc = querySnapshot.docs[0];
     const newInstruction = doc.data().instruction;
+    const temperature = doc.data().temperature; // Fetch the model temperature
 
     // Create a new model instance
     const newModelInstance = genAI.getGenerativeModel({
@@ -244,11 +247,13 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
     if (userSessions[userId]) {
       userSessions[userId].instance = newModelInstance; // Update the model instance for the user
       userSessions[userId].modelNumber = numberParam; // Update the model number
+      userSessions[userId].temperature = temperature; // Save the model temperature in session
     }
 
     res.json({
       message: 'Instruction updated successfully',
-      newInstruction: newInstruction
+      newInstruction: newInstruction,
+      temperature: temperature // Return the temperature as well
     });
   } catch (error) {
     console.error('Error updating instruction:', error);
