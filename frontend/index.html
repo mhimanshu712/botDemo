@@ -146,12 +146,34 @@
           margin: 0;
         }
       }
+
+      /* Add this CSS for the loading spinner */
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-top: 4px solid #8b5cf6; /* Spinner color */
+        border-radius: 50%;
+        width: 30px; /* Spinner size */
+        height: 30px; /* Spinner size */
+        animation: spin 1s linear infinite;
+        margin: auto; /* Center the spinner */
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
     <h1>BizBot</h1>
     <div id="model-container" class="model-list">
-      <div class="loading">Loading models...</div>
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
     </div>
 
     <script>
