@@ -225,6 +225,7 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
       return res.json({ message: 'Model is already up to date' });
     }
 
+    // Fetch model metadata from the models collection
     const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(numberParam)));
     const querySnapshot = await getDocs(modelsQuery);
 
@@ -232,10 +233,21 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
       return res.status(404).json({ error: 'No matching instruction found' });
     }
 
-    // Get the first matching document
-    const doc = querySnapshot.docs[0];
-    const newInstruction = doc.data().instruction;
-    const temperature = doc.data().temperature; // Fetch the model temperature
+    // Get the first matching document for model metadata
+    const modelDoc = querySnapshot.docs[0];
+
+    // Fetch model instruction and temperature from the model_data collection
+    const modelDataQuery = query(collection(db, "models_data"), where("number", "==", parseInt(numberParam)));
+    const modelDataSnapshot = await getDocs(modelDataQuery);
+
+    if (modelDataSnapshot.empty) {
+      return res.status(404).json({ error: 'No matching model data found' });
+    }
+
+    // Get the first matching document for model data
+    const modelDataDoc = modelDataSnapshot.docs[0];
+    const newInstruction = modelDataDoc.data().instruction;
+    const temperature = modelDataDoc.data().temperature; // Fetch the model temperature
 
     // Create a new model instance
     const newModelInstance = genAI.getGenerativeModel({
