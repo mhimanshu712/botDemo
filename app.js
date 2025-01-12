@@ -123,7 +123,7 @@ app.post('/api/chat/:number', async (req, res) => {
 
     if (!userSessions[userId] || userSessions[userId].modelNumber !== modelNumber) {
       // Fetch the model instruction based on the model number only if the user session does not exist or model number is different
-      const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(modelNumber)));
+      const modelsQuery = query(collection(db, "models_data"), where("number", "==", parseInt(modelNumber)));
       const querySnapshot = await getDocs(modelsQuery);
 
       if (querySnapshot.empty) {
@@ -226,15 +226,15 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
     }
 
     // Fetch model metadata from the models collection
-    const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(numberParam)));
-    const querySnapshot = await getDocs(modelsQuery);
+    // const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(numberParam)));
+    // const querySnapshot = await getDocs(modelsQuery);
 
-    if (querySnapshot.empty) {
-      return res.status(404).json({ error: 'No matching instruction found' });
-    }
+    // if (querySnapshot.empty) {
+    //   return res.status(404).json({ error: 'No matching instruction found' });
+    // }
 
-    // Get the first matching document for model metadata
-    const modelDoc = querySnapshot.docs[0];
+    // // Get the first matching document for model metadata
+    // const modelDoc = querySnapshot.docs[0];
 
     // Fetch model instruction and temperature from the model_data collection
     const modelDataQuery = query(collection(db, "models_data"), where("number", "==", parseInt(numberParam)));
