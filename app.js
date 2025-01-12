@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');
 const express = require('express');
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, addDoc, getDocs, query, orderBy, where } = require('firebase/firestore');
@@ -8,6 +9,8 @@ const { getFirestore, collection, addDoc, getDocs, query, orderBy, where } = req
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
+// Enable CORS for all domains
+app.use(cors());
 
 const {
   GoogleGenerativeAI,
