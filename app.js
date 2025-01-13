@@ -1,10 +1,20 @@
 const path = require('path');
-const fs = require('fs');
 const cors = require('cors');
 const express = require('express');
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, addDoc, getDocs, query, orderBy, where } = require('firebase/firestore');
-
+const {
+  collectUserInfo,
+  storeUserInformation,
+  retrieveUserInformation,
+  userSessionsPersonalData
+} = require('./functions'); // Adjust the path to your functions file
+const firebaseConfig = require('./firebaseConfig');
+const {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} = require("@google/generative-ai");
 
 const app = express();
 app.use(express.json());
@@ -12,11 +22,10 @@ app.use(express.static(path.join(__dirname, 'frontend/dist')));
 // Enable CORS for all domains
 app.use(cors());
 
-const {
-  GoogleGenerativeAI,
-  HarmCategory,
-  HarmBlockThreshold,
-} = require("@google/generative-ai");
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
 const apiKey = "AIzaSyBTp0fnGBgBG3cClzOXJP2bB1_awd9s0Qw";;
 const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -27,20 +36,7 @@ const generationConfig = {
   maxOutputTokens: 8192
 };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCpcfY_2o_nIfIHpwg1nbL8BrkvpnlrMEU",
-  authDomain: "adslocal-87bc1.firebaseapp.com",
-  databaseURL: "https://adslocal-87bc1-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "adslocal-87bc1",
-  storageBucket: "adslocal-87bc1.firebasestorage.app",
-  messagingSenderId: "795593459799",
-  appId: "1:795593459799:web:92c5443d917fcb9c5d3b12",
-  measurementId: "G-N9FFFCJD4L"
-};
-
-// Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
+const userSessions = {};
 
 const recordUserInfoFunctionDeclaration = {
   name: "recordUserInfo",
@@ -61,46 +57,65 @@ const recordUserInfoFunctionDeclaration = {
   },
 };
 
+// Declaration for storeUserInformation
+const storeUserInformationFunctionDeclaration = {
+  name: "storeUserInformation",
+  parameters: {
+    type: "OBJECT",
+    description: "Store a key-value pair for user information.",
+    properties: {
+      key: {
+        type: "STRING",
+        description: "The key for the user information",
+      },
+      value: {
+        type: "STRING",
+        description: "The value to be stored for the key",
+      }
+    },
+    required: ["key", "value"],
+  },
+};
+
+// Declaration for retrieveUserInformation
+const retrieveUserInformationFunctionDeclaration = {
+  name: "retrieveUserInformation",
+  parameters: {
+    type: "OBJECT",
+    description: "Retrieve all stored user information relevant to the user message.",
+    properties: {
+      userMessage: {
+        type: "STRING",
+        description: "The message from the user to be included in the retrieval process",
+      }
+    },
+    required: ["userMessage"], // Make userMessage a required parameter
+  },
+};
+
 // Executable function code. Put it in a map keyed by the function name
 // so that you can call it once you get the name string from the model.
 const functions = {
-  recordUserInfo: ({ name, email }) => {
-    return collectUserInfo(name, email)
+  // recordUserInfo: ({ name, email }) => {
+  //   return collectUserInfo(name, email);
+  // },
+  storeUserInformation: async ({ key, value }) => {
+    return storeUserInformation(key, value);
+  },
+  // New function to retrieve stored user information
+  retrieveUserInformation: async ({ userMessage }) => {
+    return retrieveUserInformation(userMessage); // Adjust this to your actual retrieval logic
   }
 };
 
-// Update the collectUserInfo function to store data in Firestore
-async function collectUserInfo(name, email) {
-  console.log(`Collected user info - Name: ${name}, Email: ${email}`);
-
-  try {
-    // Add user info to Firestore
-    const docRef = await addDoc(collection(db, "users"), {
-      name: name,
-      email: email,
-      timestamp: new Date()
-    });
-    console.log("Document written with ID: ", docRef.id);
-
-    return {
-      name: name,
-      email: email,
-      status: "success"
-    };
-  } catch (error) {
-    console.error("Error adding document: ", error);
-    return {
-      name: name,
-      email: email,
-      status: "error",
-      error: error.message
-    };
-  }
-}
-
-// Store user sessions
-const userSessions = {};
-
+// Add the function declarations to the tools
+const tools = {
+  functionDeclarations: [
+    // recordUserInfoFunctionDeclaration,
+    storeUserInformationFunctionDeclaration,
+    retrieveUserInformationFunctionDeclaration
+  ]
+};
 
 app.get('/', async (req, res) => {
   res.sendFile(__dirname + '/frontend/index.html');
@@ -117,6 +132,7 @@ app.get('/chat', async (req, res) => {
 
 // Handle chat messages
 app.post('/api/chat/:number', async (req, res) => {
+  console.log("******new request********");
   try {
     const userId = req.body.userId; // Assume userId is sent in the request
     const modelNumber = req.params.number; // New parameter for model number
@@ -142,13 +158,13 @@ app.post('/api/chat/:number', async (req, res) => {
         instance: genAI.getGenerativeModel({
           model: "gemini-1.5-flash",
           systemInstruction: newInstruction, // Use the fetched instruction
-          tools: {
-            functionDeclarations: [recordUserInfoFunctionDeclaration],
-          }
+          tools: tools
         })
       };
     }
     generationConfig.temperature = userSessions[userId].temperature || 1;
+    // console.log("******history******");
+    // console.log(req.body.history);
     const chatSession = userSessions[userId].instance.startChat({
       generationConfig,
       history: req.body.history
@@ -156,7 +172,8 @@ app.post('/api/chat/:number', async (req, res) => {
     var result = await chatSession.sendMessage(req.body.message);
 
     const shouldCall = result.response.functionCalls();
-    //console.log(result.response.functionCalls());
+    console.log("****function calls******");
+    console.log(result.response.functionCalls());
 
     if (shouldCall) {
       const call = result.response.functionCalls()[0];
@@ -165,21 +182,27 @@ app.post('/api/chat/:number', async (req, res) => {
       // let it call the hypothetical API.
       const apiResponse = await functions[call.name](call.args);
 
+      console.log("*******history before fun call******");
+      console.log(req.body.history || []);
       // Send the API response back to the model so it can generate
       // a text response that can be displayed to the user.
       const result2 = await chatSession.sendMessage([{
         functionResponse: {
-          name: 'recordUserInfo',
+          name: call.name,
           response: apiResponse
         }
       }]);
+      console.log("*******history after fun call******");
+      req.body.history = req.body.history.slice(0, -3);
+      console.log(req.body.history || []);
+      console.log(req.body.history[req.body.history.length - 1].parts);
 
       // Log the text response.
       console.log(result2.response.text());
       result = result2;
     }
     const response = result.response.text();
-    console.log("*************");
+    console.log("*******model response******");
     console.log(response);
     // Return both the response and updated history
     res.json({
@@ -253,9 +276,7 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
     const newModelInstance = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction: newInstruction,
-      tools: {
-        functionDeclarations: [recordUserInfoFunctionDeclaration],
-      }
+      tools: tools
     });
 
     // Update the user session if it exists
