@@ -14,10 +14,8 @@ const {
   HarmBlockThreshold,
 } = require("@google/generative-ai");
 const {
-  recordUserInfoFunctionDeclaration,
-  storeInMemoryFunctionDeclaration,
-  getFromMemoryFunctionDeclaration,
-  addTwoNumbersFunctionDeclaration
+  addTwoNumbersFunctionDeclaration,
+  toolsMap
 } = require('./functionsDefinition');
 
 const app = express();
@@ -44,15 +42,6 @@ llmModelName = "gemini-2.0-flash-exp";
 
 const userSessions = {};
 
-// Executable function code. Put it in a map keyed by the function name
-// so that you can call it once you get the name string from the model.
-
-const toolsMap = {
-  "storeInMemory": storeInMemoryFunctionDeclaration,
-  "getFromMemory": getFromMemoryFunctionDeclaration,
-  "addTwoNumbers": addTwoNumbersFunctionDeclaration,
-  "recordUserInfo": recordUserInfoFunctionDeclaration
-}
 
 app.get('/', async (req, res) => {
   res.sendFile(__dirname + '/frontend/index.html');

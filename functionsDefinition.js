@@ -80,6 +80,13 @@ const addTwoNumbersFunctionDeclaration = {
     },
 };
 
+const toolsMap = {
+    "storeInMemory": storeInMemoryFunctionDeclaration,
+    "getFromMemory": getFromMemoryFunctionDeclaration,
+    "addTwoNumbers": addTwoNumbersFunctionDeclaration,
+    "recordUserInfo": recordUserInfoFunctionDeclaration
+}
+
 // Export the function declarations
 module.exports = {
     recordUserInfoFunctionDeclaration,
@@ -87,4 +94,5 @@ module.exports = {
     getFromMemoryFunctionDeclaration,
     getDateTimeFunctionDeclaration,
     addTwoNumbersFunctionDeclaration,
+    toolsMap
 }; 
