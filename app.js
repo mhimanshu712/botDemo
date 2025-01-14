@@ -5,9 +5,10 @@ const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, addDoc, getDocs, query, orderBy, where } = require('firebase/firestore');
 const {
   collectUserInfo,
-  storeUserInformation,
-  retrieveUserInformation,
-  userSessionsPersonalData
+  storeInMemory,
+  getFromMemory,
+  userSessionsPersonalData,
+  modelFunctions
 } = require('./functions'); // Adjust the path to your functions file
 const firebaseConfig = require('./firebaseConfig');
 const {
@@ -15,6 +16,11 @@ const {
   HarmCategory,
   HarmBlockThreshold,
 } = require("@google/generative-ai");
+const {
+  recordUserInfoFunctionDeclaration,
+  storeInMemoryFunctionDeclaration,
+  getFromMemoryFunctionDeclaration,
+} = require('./functionsDefinition');
 
 const app = express();
 app.use(express.json());
@@ -36,84 +42,19 @@ const generationConfig = {
   maxOutputTokens: 8192
 };
 
+llmModelName = "gemini-2.0-flash-exp";
+
 const userSessions = {};
-
-const recordUserInfoFunctionDeclaration = {
-  name: "recordUserInfo",
-  parameters: {
-    type: "OBJECT",
-    description: "Record a user's name and email address.",
-    properties: {
-      name: {
-        type: "STRING",
-        description: "The user's full name",
-      },
-      email: {
-        type: "STRING",
-        description: "The user's email address",
-      }
-    },
-    required: ["name", "email"],
-  },
-};
-
-// Declaration for storeUserInformation
-const storeUserInformationFunctionDeclaration = {
-  name: "storeUserInformation",
-  parameters: {
-    type: "OBJECT",
-    description: "Store a key-value pair for user information.",
-    properties: {
-      key: {
-        type: "STRING",
-        description: "The key for the user information",
-      },
-      value: {
-        type: "STRING",
-        description: "The value to be stored for the key",
-      }
-    },
-    required: ["key", "value"],
-  },
-};
-
-// Declaration for retrieveUserInformation
-const retrieveUserInformationFunctionDeclaration = {
-  name: "retrieveUserInformation",
-  parameters: {
-    type: "OBJECT",
-    description: "Retrieve all stored user information relevant to the user message.",
-    properties: {
-      userMessage: {
-        type: "STRING",
-        description: "The message from the user to be included in the retrieval process",
-      }
-    },
-    required: ["userMessage"], // Make userMessage a required parameter
-  },
-};
 
 // Executable function code. Put it in a map keyed by the function name
 // so that you can call it once you get the name string from the model.
-const functions = {
-  // recordUserInfo: ({ name, email }) => {
-  //   return collectUserInfo(name, email);
-  // },
-  storeUserInformation: async ({ key, value }) => {
-    return storeUserInformation(key, value);
-  },
-  // New function to retrieve stored user information
-  retrieveUserInformation: async ({ userMessage }) => {
-    return retrieveUserInformation(userMessage); // Adjust this to your actual retrieval logic
-  }
-};
 
 // Add the function declarations to the tools
 const tools = {
   functionDeclarations: [
     // recordUserInfoFunctionDeclaration,
-    storeUserInformationFunctionDeclaration,
-    retrieveUserInformationFunctionDeclaration
+    storeInMemoryFunctionDeclaration,
+    getFromMemoryFunctionDeclaration
   ]
 };
 
@@ -156,7 +97,7 @@ app.post('/api/chat/:number', async (req, res) => {
         modelNumber: modelNumber, // Store the current model number
         temperature: temperature, // Store the model temperature
         instance: genAI.getGenerativeModel({
-          model: "gemini-1.5-flash",
+          model: llmModelName,
           systemInstruction: newInstruction, // Use the fetched instruction
           tools: tools
         })
@@ -180,7 +121,7 @@ app.post('/api/chat/:number', async (req, res) => {
       // Call the executable function named in the function call
       // with the arguments specified in the function call and
       // let it call the hypothetical API.
-      const apiResponse = await functions[call.name](call.args);
+      const apiResponse = await modelFunctions[call.name](call.args);
 
       console.log("*******history before fun call******");
       console.log(req.body.history || []);
@@ -274,7 +215,7 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
 
     // Create a new model instance
     const newModelInstance = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: llmModelName,
       systemInstruction: newInstruction,
       tools: tools
     });

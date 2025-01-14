@@ -3,7 +3,7 @@ const { initializeApp } = require('firebase/app');
 const firebaseConfig = require('./firebaseConfig');
 const db = getFirestore(initializeApp(firebaseConfig));
 
-var userSessionsPersonalData = {};
+var userSessionsPersonalData = [];
 
 // Function to collect user info
 async function collectUserInfo(name, email) {
@@ -34,30 +34,44 @@ async function collectUserInfo(name, email) {
 }
 
 // Function to store user information
-async function storeUserInformation(key, value) {
-    console.log(`Storing user information - Key: ${key}, Value: ${value}`);
-    userSessionsPersonalData[key] = value; // Storing in userSessions for demonstration
+async function storeInMemory(relevantText) {
+    console.log(`Storing user information : ${relevantText}`);
+    userSessionsPersonalData.push(relevantText); // Storing in userSessions for demonstration
 
     return {
-        key: key,
-        value: value,
+        memory: relevantText,
         status: "success"
     };
 }
 
 // Function to retrieve user information by key
-function retrieveUserInformation(userMessage) {
+function getFromMemory(searchText) {
     console.log(`Retrieved all user information - Data:`, userSessionsPersonalData);
+
     return {
         data: userSessionsPersonalData,
         status: "success"
     };
 }
 
+const modelFunctions = {
+    // recordUserInfo: ({ name, email }) => {
+    //   return collectUserInfo(name, email);
+    // },
+    storeInMemory: async ({ relevantText }) => {
+        return storeInMemory(relevantText);
+    },
+    // New function to retrieve stored user information
+    getFromMemory: async ({ searchText }) => {
+        return getFromMemory(searchText); // Adjust this to your actual retrieval logic
+    }
+};
+
 // Export the functions
 module.exports = {
     collectUserInfo,
-    storeUserInformation,
-    retrieveUserInformation,
+    storeInMemory: storeInMemory,
+    getFromMemory: getFromMemory,
+    modelFunctions,
     userSessionsPersonalData // Export userSessions if needed
 }; 
