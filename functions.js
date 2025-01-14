@@ -54,16 +54,36 @@ function getFromMemory(searchText) {
     };
 }
 
+// Function to get the current date and time
+function getDateTime() {
+    const now = new Date();
+    return now.toISOString(); // Returns the date and time in ISO format
+}
+
+// Function to add two numbers
+function addTwoNumbers(number1, number2) {
+    return {
+        data: number1 + number2,
+        status: "success"
+    };
+}
+
 const modelFunctions = {
-    // recordUserInfo: ({ name, email }) => {
-    //   return collectUserInfo(name, email);
-    // },
+    recordUserInfo: ({ name, email }) => {
+        return collectUserInfo(name, email);
+    },
     storeInMemory: async ({ relevantText }) => {
         return storeInMemory(relevantText);
     },
     // New function to retrieve stored user information
     getFromMemory: async ({ searchText }) => {
         return getFromMemory(searchText); // Adjust this to your actual retrieval logic
+    },
+    getDateTime: async () => {
+        return getDateTime(); // Call the getDateTime function
+    },
+    addTwoNumbers: async ({ number1, number2 }) => {
+        return addTwoNumbers(number1, number2); // Call the addTwoNumbers function
     }
 };
 
@@ -72,6 +92,8 @@ module.exports = {
     collectUserInfo,
     storeInMemory: storeInMemory,
     getFromMemory: getFromMemory,
+    getDateTime: getDateTime,
+    addTwoNumbers: addTwoNumbers, // Export the addTwoNumbers function
     modelFunctions,
     userSessionsPersonalData // Export userSessions if needed
 }; 

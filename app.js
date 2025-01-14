@@ -4,9 +4,6 @@ const express = require('express');
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, addDoc, getDocs, query, orderBy, where } = require('firebase/firestore');
 const {
-  collectUserInfo,
-  storeInMemory,
-  getFromMemory,
   userSessionsPersonalData,
   modelFunctions
 } = require('./functions'); // Adjust the path to your functions file
@@ -20,6 +17,7 @@ const {
   recordUserInfoFunctionDeclaration,
   storeInMemoryFunctionDeclaration,
   getFromMemoryFunctionDeclaration,
+  addTwoNumbersFunctionDeclaration
 } = require('./functionsDefinition');
 
 const app = express();
@@ -49,14 +47,12 @@ const userSessions = {};
 // Executable function code. Put it in a map keyed by the function name
 // so that you can call it once you get the name string from the model.
 
-// Add the function declarations to the tools
-const tools = {
-  functionDeclarations: [
-    // recordUserInfoFunctionDeclaration,
-    storeInMemoryFunctionDeclaration,
-    getFromMemoryFunctionDeclaration
-  ]
-};
+const toolsMap = {
+  "storeInMemory": storeInMemoryFunctionDeclaration,
+  "getFromMemory": getFromMemoryFunctionDeclaration,
+  "addTwoNumbers": addTwoNumbersFunctionDeclaration,
+  "recordUserInfo": recordUserInfoFunctionDeclaration
+}
 
 app.get('/', async (req, res) => {
   res.sendFile(__dirname + '/frontend/index.html');
@@ -91,6 +87,11 @@ app.post('/api/chat/:number', async (req, res) => {
       const doc = querySnapshot.docs[0];
       const newInstruction = doc.data().instruction;
       const temperature = doc.data().temperature; // Fetch the model temperature
+      const allowedFunctions = doc.data().allowedFunctions;
+      var allowedFunctionsObjects = [addTwoNumbersFunctionDeclaration];
+      if (allowedFunctions && allowedFunctions.length > 0) {
+        allowedFunctionsObjects = allowedFunctions.map(functionName => toolsMap[functionName]);
+      }
 
       // Create a new model instance for the user with the fetched instruction
       userSessions[userId] = {
@@ -99,7 +100,9 @@ app.post('/api/chat/:number', async (req, res) => {
         instance: genAI.getGenerativeModel({
           model: llmModelName,
           systemInstruction: newInstruction, // Use the fetched instruction
-          tools: tools
+          tools: {
+            functionDeclarations: allowedFunctionsObjects // Use the allowedFunctions list directly
+          }
         })
       };
     }
@@ -189,17 +192,6 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
       return res.json({ message: 'Model is already up to date' });
     }
 
-    // Fetch model metadata from the models collection
-    // const modelsQuery = query(collection(db, "models"), where("number", "==", parseInt(numberParam)));
-    // const querySnapshot = await getDocs(modelsQuery);
-
-    // if (querySnapshot.empty) {
-    //   return res.status(404).json({ error: 'No matching instruction found' });
-    // }
-
-    // // Get the first matching document for model metadata
-    // const modelDoc = querySnapshot.docs[0];
-
     // Fetch model instruction and temperature from the model_data collection
     const modelDataQuery = query(collection(db, "models_data"), where("number", "==", parseInt(numberParam)));
     const modelDataSnapshot = await getDocs(modelDataQuery);
@@ -212,12 +204,16 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
     const modelDataDoc = modelDataSnapshot.docs[0];
     const newInstruction = modelDataDoc.data().instruction;
     const temperature = modelDataDoc.data().temperature; // Fetch the model temperature
-
+    const allowedFunctions = modelDataDoc.data().allowedFunctions;
+    var allowedFunctionsObjects = [addTwoNumbersFunctionDeclaration];
+    if (allowedFunctions && allowedFunctions.length > 0) {
+      allowedFunctionsObjects = allowedFunctions.map(functionName => toolsMap[functionName]);
+    }
     // Create a new model instance
     const newModelInstance = genAI.getGenerativeModel({
       model: llmModelName,
       systemInstruction: newInstruction,
-      tools: tools
+      tools: { functionDeclarations: allowedFunctionsObjects }
     });
 
     // Update the user session if it exists

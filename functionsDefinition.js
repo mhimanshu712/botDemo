@@ -49,9 +49,42 @@ const getFromMemoryFunctionDeclaration = {
     },
 };
 
+// Declaration for getDateTime
+const getDateTimeFunctionDeclaration = {
+    name: "getDateTime",
+    parameters: {
+        type: "string",
+        description: "Retrieve the current date and time.",
+        properties: {},
+        required: [],
+    },
+};
+
+// Declaration for addTwoNumbers
+const addTwoNumbersFunctionDeclaration = {
+    name: "addTwoNumbers",
+    parameters: {
+        type: "OBJECT",
+        description: "Add two numbers together.",
+        properties: {
+            number1: {
+                type: "NUMBER",
+                description: "The first number to add",
+            },
+            number2: {
+                type: "NUMBER",
+                description: "The second number to add",
+            }
+        },
+        required: ["number1", "number2"],
+    },
+};
+
 // Export the function declarations
 module.exports = {
     recordUserInfoFunctionDeclaration,
     storeInMemoryFunctionDeclaration,
     getFromMemoryFunctionDeclaration,
+    getDateTimeFunctionDeclaration,
+    addTwoNumbersFunctionDeclaration,
 }; 
