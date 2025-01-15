@@ -36,17 +36,25 @@ async function collectUserInfo(name, email) {
 // Function to store user information
 async function storeInMemory(relevantText) {
     console.log(`Storing user information : ${relevantText}`);
-    userSessionsPersonalData.push(relevantText); // Storing in userSessions for demonstration
+    userSessionsPersonalData.push(relevantText + "."); // Storing in userSessions for demonstration
 
     return {
-        memory: relevantText,
+        status: "success"
+    };
+}
+
+async function forgetFromMemory(relevantText) {
+    console.log(`Forgetting user information : ${relevantText}`);
+    userSessionsPersonalData.push("Forget this information, don't mention it again: \"" + relevantText + "\""); // Storing in userSessions for demonstration
+
+    return {
         status: "success"
     };
 }
 
 // Function to retrieve user information by key
 function getFromMemory(searchText) {
-    console.log(`Retrieved all user information - Data:`, userSessionsPersonalData);
+    console.log(`Retrieved all user information - Memory:`, userSessionsPersonalData);
 
     return {
         data: userSessionsPersonalData,
@@ -72,18 +80,21 @@ const modelFunctions = {
     recordUserInfo: ({ name, email }) => {
         return collectUserInfo(name, email);
     },
-    storeInMemory: async ({ relevantText }) => {
+    storeInMemory: ({ relevantText }) => {
         return storeInMemory(relevantText);
     },
     // New function to retrieve stored user information
-    getFromMemory: async ({ searchText }) => {
+    getFromMemory: ({ searchText }) => {
         return getFromMemory(searchText); // Adjust this to your actual retrieval logic
     },
-    getDateTime: async () => {
+    getDateTime: () => {
         return getDateTime(); // Call the getDateTime function
     },
-    addTwoNumbers: async ({ number1, number2 }) => {
+    addTwoNumbers: ({ number1, number2 }) => {
         return addTwoNumbers(number1, number2); // Call the addTwoNumbers function
+    },
+    forgetFromMemory: ({ relevantText }) => {
+        return forgetFromMemory(relevantText);
     }
 };
 

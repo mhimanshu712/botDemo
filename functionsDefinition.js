@@ -49,6 +49,20 @@ const getFromMemoryFunctionDeclaration = {
     },
 };
 
+const forgetFromMemoryFunctionDeclaration = {
+    name: "forgetFromMemory",
+    parameters: {
+        type: "OBJECT",
+        description: "Forget a stored information from the memory.",
+        properties: {
+            relevantText: {
+                type: "STRING",
+                description: "The information to be forgotten from the memory",
+            }
+        },
+    },
+};
+
 // Declaration for getDateTime
 const getDateTimeFunctionDeclaration = {
     name: "getDateTime",
@@ -84,7 +98,8 @@ const toolsMap = {
     "storeInMemory": storeInMemoryFunctionDeclaration,
     "getFromMemory": getFromMemoryFunctionDeclaration,
     "addTwoNumbers": addTwoNumbersFunctionDeclaration,
-    "recordUserInfo": recordUserInfoFunctionDeclaration
+    "recordUserInfo": recordUserInfoFunctionDeclaration,
+    "forgetFromMemory": forgetFromMemoryFunctionDeclaration
 }
 
 // Export the function declarations

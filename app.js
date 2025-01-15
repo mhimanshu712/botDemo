@@ -107,25 +107,29 @@ app.post('/api/chat/:number', async (req, res) => {
     const shouldCall = result.response.functionCalls();
     console.log("****function calls******");
     console.log(result.response.functionCalls());
+    console.log("*******history before second fun call******");
+    console.log(req.body.history || []);
 
     if (shouldCall) {
-      const call = result.response.functionCalls()[0];
-      // Call the executable function named in the function call
-      // with the arguments specified in the function call and
-      // let it call the hypothetical API.
-      const apiResponse = await modelFunctions[call.name](call.args);
+      var functionalResponse = [];
 
-      console.log("*******history before fun call******");
-      console.log(req.body.history || []);
+      result.response.functionCalls().forEach(call => {
+        const apiResponse = modelFunctions[call.name](call.args);
+
+        functionalResponse.push({
+          functionResponse: {
+            name: call.name,
+            response: apiResponse
+          }
+        });
+      });
+
+
       // Send the API response back to the model so it can generate
       // a text response that can be displayed to the user.
-      const result2 = await chatSession.sendMessage([{
-        functionResponse: {
-          name: call.name,
-          response: apiResponse
-        }
-      }]);
-      console.log("*******history after fun call******");
+      const result2 = await chatSession.sendMessage(functionalResponse);
+      console.log("*******history  after fun call******");
+
       req.body.history = req.body.history.slice(0, -3);
       console.log(req.body.history || []);
       console.log(req.body.history[req.body.history.length - 1].parts);
