@@ -6,13 +6,9 @@ const { getFirestore, collection, addDoc, getDocs, query, orderBy, where } = req
 const {
   userSessionsPersonalData,
   modelFunctions
-} = require('./functions'); // Adjust the path to your functions file
+} = require('./functions');
 const firebaseConfig = require('./firebaseConfig');
-const {
-  GoogleGenerativeAI,
-  HarmCategory,
-  HarmBlockThreshold,
-} = require("@google/generative-ai");
+const OpenAI = require('openai');
 const {
   addTwoNumbersFunctionDeclaration,
   toolsMap
@@ -28,21 +24,18 @@ app.use(cors());
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
-const apiKey = "AIzaSyBTp0fnGBgBG3cClzOXJP2bB1_awd9s0Qw";;
-const genAI = new GoogleGenerativeAI(apiKey);
+const googleApiKey = "AIzaSyBTp0fnGBgBG3cClzOXJP2bB1_awd9s0Qw";
+const apiKey = "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";
+const googleBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+const openRouterBaseUrl = "https://openrouter.ai/api/v1";
+const openai = new OpenAI({
+  baseURL: googleBaseUrl,
+  apiKey: googleApiKey,
+});
 
-const generationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 40,
-  maxOutputTokens: 8192
-};
-
-const llmModelName = "gemini-2.0-flash-exp";
-//llmModelName = "gemini-1.5-flash-8b"
-
+const defaultModelOpenRouter = "mistralai/mistral-small-24b-instruct-2501";
+const defaultModel = "gemini-2.0-flash-exp";
 const userSessions = {};
-
 
 app.get('/', async (req, res) => {
   res.sendFile(__dirname + '/frontend/index.html');
@@ -61,8 +54,8 @@ app.get('/chat', async (req, res) => {
 app.post('/api/chat/:number', async (req, res) => {
   console.log("******new request********");
   try {
-    const userId = req.body.userId; // Assume userId is sent in the request
-    const modelNumber = req.params.number; // New parameter for model number
+    const userId = req.body.userId;
+    const modelNumber = req.params.number;
 
     if (!userSessions[userId] || userSessions[userId].modelNumber !== modelNumber) {
       // Fetch the model instruction based on the model number only if the user session does not exist or model number is different
@@ -76,7 +69,7 @@ app.post('/api/chat/:number', async (req, res) => {
       // Get the first matching document
       const doc = querySnapshot.docs[0];
       const newInstruction = doc.data().instruction;
-      const temperature = doc.data().temperature; // Fetch the model temperature
+      const temperature = doc.data().temperature;
       const allowedFunctions = doc.data().allowedFunctions;
       var allowedFunctionsObjects = [addTwoNumbersFunctionDeclaration];
       if (allowedFunctions && allowedFunctions.length > 0) {
@@ -85,69 +78,109 @@ app.post('/api/chat/:number', async (req, res) => {
 
       // Create a new model instance for the user with the fetched instruction
       userSessions[userId] = {
-        modelNumber: modelNumber, // Store the current model number
-        temperature: temperature, // Store the model temperature
-        instance: genAI.getGenerativeModel({
-          model: llmModelName,
-          systemInstruction: newInstruction, // Use the fetched instruction
-          tools: {
-            functionDeclarations: allowedFunctionsObjects // Use the allowedFunctions list directly
-          }
-        })
+        modelNumber: modelNumber,
+        temperature: temperature,
+        systemInstruction: newInstruction,
+        functions: allowedFunctionsObjects
       };
     }
-    generationConfig.temperature = userSessions[userId].temperature || 1;
-    // console.log("******history******");
-    // console.log(req.body.history);
-    const chatSession = userSessions[userId].instance.startChat({
-      generationConfig,
-      history: req.body.history
-    });
-    var result = await chatSession.sendMessage(req.body.message);
 
-    const shouldCall = result.response.functionCalls();
-    console.log("****function calls******");
-    console.log(result.response.functionCalls());
-    console.log("*******history before second fun call******");
-    console.log(req.body.history || []);
+    const messages = [
+      {
+        role: "system",
+        content: userSessions[userId].systemInstruction
+      }
+    ];
 
-    if (shouldCall) {
-      var functionalResponse = [];
-
-      result.response.functionCalls().forEach(call => {
-        const apiResponse = modelFunctions[call.name](call.args);
-
-        functionalResponse.push({
-          functionResponse: {
-            name: call.name,
-            response: apiResponse
-          }
+    // Add conversation history
+    if (req.body.history && req.body.history.length > 0) {
+      req.body.history.forEach(msg => {
+        messages.push({
+          role: msg.role === "model" ? "assistant" : msg.role,
+          content: msg.parts[0].text
         });
       });
-
-
-      // Send the API response back to the model so it can generate
-      // a text response that can be displayed to the user.
-      const result2 = await chatSession.sendMessage(functionalResponse);
-      console.log("*******history  after fun call******");
-
-      req.body.history = req.body.history.slice(0, -3);
-      console.log(req.body.history || []);
-      console.log(req.body.history[req.body.history.length - 1].parts);
-
-      // Log the text response.
-      console.log(result2.response.text());
-      result = result2;
     }
-    const response = result.response.text();
+
+    // Add the new user message
+    messages.push({
+      role: "user",
+      content: req.body.message
+    });
+
+    // Convert functions to tools format
+    const tools = userSessions[userId].functions ? userSessions[userId].functions.map(func => ({
+      type: "function",
+      function: {
+        name: func.name,
+        description: func.description,
+        parameters: func.parameters
+      }
+    })) : [];
+
+    console.log("*******messages******");
+    console.log(messages);
+    const result = await openai.chat.completions.create({
+      model: defaultModel,
+      messages: messages,
+      temperature: userSessions[userId].temperature || 1,
+      tools: tools,
+      tool_choice: "auto"
+    });
+
     console.log("*******model response******");
+    console.log(result);
+    
+    let response = result.choices[0].message.content;
+    
+    // Handle tool calls if present
+    if (result.choices[0].message.tool_calls) {
+      const toolCall = result.choices[0].message.tool_calls[0];
+      const apiResponse = modelFunctions[toolCall.function.name](JSON.parse(toolCall.function.arguments));
+
+      // Send the tool response back to the model
+      messages.push({
+        role: "assistant",
+        content: null,
+        tool_calls: [toolCall]
+      });
+      
+      messages.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        name: toolCall.function.name,
+        content: JSON.stringify(apiResponse)
+      });
+
+      console.log("****message after tool call*****");
+      console.log(messages);
+      // Filter out tool-related messages for Google API compatibility
+      const filteredMessages = messages.filter(msg => 
+        msg.role !== 'tool' && !msg.tool_calls
+      ).map(msg => ({
+        role: msg.role,
+        content: msg.content || '' // Ensure content is never null
+      }));
+
+      console.log("****filtered messages*****");
+      console.log(filteredMessages);
+      const result2 = await openai.chat.completions.create({
+        model: defaultModel,
+        messages: filteredMessages,
+        temperature: userSessions[userId].temperature || 1
+      });
+
+      response = result2.choices[0].message.content;
+    }
+
+    console.log("*******final response******");
     console.log(response);
-    // Return both the response and updated history
+
     res.json({
       response,
       history: [...(req.body.history || []),
-      { role: "user", parts: [{ text: req.body.message }] },
-      { role: "model", parts: [{ text: response }] }
+        { role: "user", parts: [{ text: req.body.message }] },
+        { role: "model", parts: [{ text: response }] }
       ]
     });
   } catch (error) {
@@ -179,14 +212,12 @@ app.get('/api/users', async (req, res) => {
 app.get('/api/updateInstruction/:number', async (req, res) => {
   try {
     const numberParam = req.params.number;
-    const userId = req.query.userId; // Assume userId is sent as a query parameter
+    const userId = req.query.userId;
 
-    // Check if the user session exists
     if (userSessions[userId] && userSessions[userId].modelNumber === numberParam) {
       return res.json({ message: 'Model is already up to date' });
     }
 
-    // Fetch model instruction and temperature from the model_data collection
     const modelDataQuery = query(collection(db, "models_data"), where("number", "==", parseInt(numberParam)));
     const modelDataSnapshot = await getDocs(modelDataQuery);
 
@@ -194,33 +225,26 @@ app.get('/api/updateInstruction/:number', async (req, res) => {
       return res.status(404).json({ error: 'No matching model data found' });
     }
 
-    // Get the first matching document for model data
     const modelDataDoc = modelDataSnapshot.docs[0];
     const newInstruction = modelDataDoc.data().instruction;
-    const temperature = modelDataDoc.data().temperature; // Fetch the model temperature
+    const temperature = modelDataDoc.data().temperature;
     const allowedFunctions = modelDataDoc.data().allowedFunctions;
     var allowedFunctionsObjects = [addTwoNumbersFunctionDeclaration];
     if (allowedFunctions && allowedFunctions.length > 0) {
       allowedFunctionsObjects = allowedFunctions.map(functionName => toolsMap[functionName]);
     }
-    // Create a new model instance
-    const newModelInstance = genAI.getGenerativeModel({
-      model: llmModelName,
-      systemInstruction: newInstruction,
-      tools: { functionDeclarations: allowedFunctionsObjects }
-    });
 
-    // Update the user session if it exists
     if (userSessions[userId]) {
-      userSessions[userId].instance = newModelInstance; // Update the model instance for the user
-      userSessions[userId].modelNumber = numberParam; // Update the model number
-      userSessions[userId].temperature = temperature; // Save the model temperature in session
+      userSessions[userId].systemInstruction = newInstruction;
+      userSessions[userId].modelNumber = numberParam;
+      userSessions[userId].temperature = temperature;
+      userSessions[userId].functions = allowedFunctionsObjects;
     }
 
     res.json({
       message: 'Instruction updated successfully',
       newInstruction: newInstruction,
-      temperature: temperature // Return the temperature as well
+      temperature: temperature
     });
   } catch (error) {
     console.error('Error updating instruction:', error);

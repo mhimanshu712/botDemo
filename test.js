@@ -1,36 +1,39 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from 'openai';
 import { readFile } from 'fs/promises';
 
-const apiKey = "AIzaSyBTp0fnGBgBG3cClzOXJP2bB1_awd9s0Qw";;
+const apiKey = "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"; // Replace with your OpenAI API key
 
-const generationConfig = {
-    temperature: 1,
-    topP: 0.95,
-    topK: 40,
-    maxOutputTokens: 8192
-};
+const openai = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: apiKey,
+});
 
-//const llmModelName = "gemini-2.0-flash-exp";
-const llmModelName = "gemini-2.0-flash-thinking-exp-1219";
-
-const genAI = new GoogleGenerativeAI(apiKey);
-
-const newInstruction = "Act like a teaching assistant. You are given a pdf file and a question. You need to answer the question based on the pdf file.";
-
-const model = genAI.getGenerativeModel({ model: llmModelName, systemInstruction: newInstruction, });
+const systemInstruction = "Act like a teaching assistant. You are given a pdf file and a question. You need to answer the question based on the pdf file.";
 
 console.log("fetching pdf");
 
 const pdfResp = await readFile('./books/keph101c.pdf');
+const base64Pdf = Buffer.from(pdfResp).toString("base64");
 
 console.log("generating content");
-const result = await model.generateContent([
-    {
-        inlineData: {
-            data: Buffer.from(pdfResp).toString("base64"),
-            mimeType: "application/pdf",
+const result = await openai.chat.completions.create({
+    model: "mistralai/mistral-small-24b-instruct-2501", // Using GPT-4 Vision as it can handle PDF content
+    messages: [
+        {
+            role: "system",
+            content: systemInstruction
         },
-    },
-    'solve question 3.17 from the book',
-]);
-console.log(result.response.text());
+        {
+            role: "user",
+            content: [
+                {
+                    type: "text",
+                    text: "whats meaning of life?"
+                }
+            ]
+        }
+    ],
+    max_tokens: 4096
+});
+
+console.log(result.choices[0].message.content);
