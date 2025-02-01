@@ -15,7 +15,7 @@ const systemInstruction = "You are an AI assistant for Ads Local, a premier ads 
 
 // Initialize the model
 const model = new ChatGoogleGenerativeAI({
-  modelName: "gemini-1.5-pro",
+  modelName: "gemini-2.0-flash-exp",
   apiKey: "AIzaSyBTp0fnGBgBG3cClzOXJP2bB1_awd9s0Qw",
   temperature: 1,
   topP: 0.95,
@@ -39,7 +39,7 @@ app.use(express.json());
 
 // Serve the HTML file
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+  res.sendFile(__dirname + '/index.html');
 });
 
 // Add function definitions
@@ -81,54 +81,54 @@ function collectUserInfo(name, email, interestedService) {
 
 // Handle chat messages
 app.post('/chat', async (req, res) => {
-    try {
-        const chain = chatPrompt.pipe(model);
-        
-        const response = await chain.invoke({
-            history: req.body.history || [],
-            input: req.body.message
-        });
+  try {
+    const chain = chatPrompt.pipe(model);
 
-        // Check if the response indicates need for collecting user info
-        const needsUserInfo = response.content.toLowerCase().includes("could i have your name and email");
-        
-        let finalResponse = response.content;
-        if (needsUserInfo) {
-            // In a real implementation, you would parse the user's response
-            // This is a simplified example
-            const userInfo = {
-                name: req.body.message.match(/name:?\s*([^\n,]+)/i)?.[1],
-                email: req.body.message.match(/email:?\s*([^\s,]+)/i)?.[1],
-                interestedService: req.body.message.toLowerCase().includes("advertising") ? "advertising" :
-                                 req.body.message.toLowerCase().includes("website") ? "website" :
-                                 req.body.message.toLowerCase().includes("chatbot") ? "chatbot" : null
-            };
+    const response = await chain.invoke({
+      history: req.body.history || [],
+      input: req.body.message
+    });
 
-            if (userInfo.name && userInfo.email && userInfo.interestedService) {
-                finalResponse = collectUserInfo(
-                    userInfo.name,
-                    userInfo.email,
-                    userInfo.interestedService
-                );
-            }
-        }
+    // Check if the response indicates need for collecting user info
+    const needsUserInfo = response.content.toLowerCase().includes("could i have your name and email");
 
-        res.json({ 
-            response: finalResponse,
-            history: [...(req.body.history || []), 
-                {role: "user", content: req.body.message},
-                {role: "assistant", content: finalResponse}
-            ]
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        res.json({ response: "I apologize, but I encountered an error processing your message. Please try again." });
+    let finalResponse = response.content;
+    if (needsUserInfo) {
+      // In a real implementation, you would parse the user's response
+      // This is a simplified example
+      const userInfo = {
+        name: req.body.message.match(/name:?\s*([^\n,]+)/i)?.[1],
+        email: req.body.message.match(/email:?\s*([^\s,]+)/i)?.[1],
+        interestedService: req.body.message.toLowerCase().includes("advertising") ? "advertising" :
+          req.body.message.toLowerCase().includes("website") ? "website" :
+            req.body.message.toLowerCase().includes("chatbot") ? "chatbot" : null
+      };
+
+      if (userInfo.name && userInfo.email && userInfo.interestedService) {
+        finalResponse = collectUserInfo(
+          userInfo.name,
+          userInfo.email,
+          userInfo.interestedService
+        );
+      }
     }
+
+    res.json({
+      response: finalResponse,
+      history: [...(req.body.history || []),
+      { role: "user", content: req.body.message },
+      { role: "assistant", content: finalResponse }
+      ]
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.json({ response: "I apologize, but I encountered an error processing your message. Please try again." });
+  }
 });
 
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Open http://localhost:${PORT} in your browser to start chatting`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Open http://localhost:${PORT} in your browser to start chatting`);
 });

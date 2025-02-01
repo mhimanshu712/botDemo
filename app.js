@@ -38,7 +38,8 @@ const generationConfig = {
   maxOutputTokens: 8192
 };
 
-llmModelName = "gemini-2.0-flash-exp";
+const llmModelName = "gemini-2.0-flash-exp";
+//llmModelName = "gemini-1.5-flash-8b"
 
 const userSessions = {};
 
